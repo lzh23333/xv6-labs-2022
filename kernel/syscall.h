@@ -21,6 +21,7 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_trace  22
+#define SYS_sysinfo 23
 
-#define MAX_SYSCALL SYS_trace
+#define MAX_SYSCALL SYS_sysinfo
 #define MIN_SYSCALL SYS_fork

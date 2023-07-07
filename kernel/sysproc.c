@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "syscall.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -102,5 +103,20 @@ sys_trace(void)
   // check argment, if not bits set, return -1
   if ((n & ((2 << MAX_SYSCALL) - 1)) == 0) return -1;
   myproc()->tracenum = n;
+  return 0;
+}
+
+uint64
+sys_sysinfo(void)
+{
+  struct sysinfo info;
+  uint64 dst;
+  argaddr(0, &dst);
+
+  info.freemem = freemem();
+  info.nproc = numproc();
+
+  if(copyout(myproc()->pagetable, dst, (char *)&info, sizeof(info)) < 0)
+    return -1;
   return 0;
 }

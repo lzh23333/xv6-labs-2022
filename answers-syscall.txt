@@ -1,0 +1,6 @@
+usertrap
+7 SYS_exec
+user mode
+a3
+load page fault
+initcode pid=1
