@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "syscall.h"
 
 uint64
 sys_exit(void)
@@ -90,4 +91,16 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+
+uint64
+sys_trace(void)
+{
+  int n;
+  argint(0, &n);
+  // check argment, if not bits set, return -1
+  if ((n & ((2 << MAX_SYSCALL) - 1)) == 0) return -1;
+  myproc()->tracenum = n;
+  return 0;
 }
