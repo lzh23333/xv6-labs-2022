@@ -75,6 +75,31 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  int num_pages, astat = 0;
+  uint64 va, dstva;
+  pagetable_t upgtbl = myproc()->pagetable;
+  argaddr(0, &va);
+  argint(1, &num_pages);
+  argaddr(2, &dstva);
+
+  // set limit on page scanned, check va
+  num_pages = num_pages > 32 ? 32 : num_pages;
+  if(va >= MAXVA || va + PGSIZE * num_pages >= MAXVA || va + PGSIZE * num_pages < va)
+    return -1;
+
+  // iterate all va
+  for (int i = 0; i < 31; i++) {
+    // find pte
+    pte_t *pte = walk(upgtbl, va + i * PGSIZE, 0);
+    if (pte == 0) continue;
+    if (*pte & PTE_A) {
+      astat |= (1L << i);
+      *pte = *pte & (~PTE_A); 
+    }
+  }
+
+  if(copyout(upgtbl, dstva, (char *)&astat, sizeof(uint32)) < 0)
+    return -1;
   return 0;
 }
 #endif

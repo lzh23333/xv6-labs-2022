@@ -1,0 +1,5 @@
+page0: text and data
+page1: guard page
+page2: stack
+user cannot write/read page1.
+page3 and others: heap, trapframe, trapoline
