@@ -6,6 +6,31 @@
 #include "spinlock.h"
 #include "proc.h"
 
+
+static inline uint64 next_fp(uint64 fp) {
+  return *(uint64 *)(fp - 16);
+}
+
+static inline uint64 ret_addr(uint64 fp) {
+  return *(uint64 *)(fp - 8);
+}
+
+static inline int on_same_stack(uint64 pgnum, uint64 fp) {
+  return pgnum == (PGROUNDDOWN(fp));
+}
+
+// backtrace
+void backtrace(void)
+{
+  uint64 fp = r_fp();
+  uint64 pgnum = PGROUNDDOWN(fp);
+  do {
+    printf("%p\n", ret_addr(fp));
+    fp = next_fp(fp);
+  } while (on_same_stack(pgnum, fp));
+}
+
+
 uint64
 sys_exit(void)
 {
@@ -53,7 +78,7 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
-
+  backtrace();
   argint(0, &n);
   if(n < 0)
     n = 0;
@@ -91,3 +116,4 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+

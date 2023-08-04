@@ -1,0 +1,42 @@
+
+```
+Which registers contain arguments to functions? For example, which register holds 13 in main's call to printf?
+```
+a2保存13
+
+```
+Where is the call to function f in the assembly code for main? Where is the call to g? (Hint: the compiler may inline functions.)
+```
+根据代码`  26:	45b1                	li	a1,12`，很明显编译器直接计算出其结果，无需调用函数。
+
+```
+At what address is the function printf located?
+```
+根据代码`30:	00000097          	auipc	ra,0x0
+  34:	612080e7          	jalr	1554(ra) # 642 <printf>`可以看出，地址在0x642。
+
+```
+What value is in the register ra just after the jalr to printf in main?
+```
+ra=0x30，为当时auipc操作后得到的
+
+```
+Run the following code.
+
+	unsigned int i = 0x00646c72;
+	printf("H%x Wo%s", 57616, &i);
+      
+What is the output? Here's an ASCII table that maps bytes to characters.
+The output depends on that fact that the RISC-V is little-endian. If the RISC-V were instead big-endian what would you set i to in order to yield the same output? Would you need to change 57616 to a different value?
+```
+
+输出为`HE110 World`。
+其中57616=0xe110正好对应16进制输出，0x72对应r,6c对应l，依次类推。
+如果改为大端，那么i的值需要改为0x726c6400，立即数无需修改。
+
+```
+In the following code, what is going to be printed after 'y='? (note: the answer is not a specific value.) Why does this happen?
+
+	printf("x=%d y=%d", 3);
+```
+输出未知的值，原因在于其输入应该是为寄存器，于是随机。
