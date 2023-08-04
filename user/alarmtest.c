@@ -12,6 +12,8 @@
 #include "kernel/riscv.h"
 #include "user/user.h"
 
+#define DEBUG
+
 void test0();
 void test1();
 void test2();
@@ -24,6 +26,7 @@ int
 main(int argc, char *argv[])
 {
   test0();
+  printf("test1 call\n");
   test1();
   test2();
   test3();
@@ -46,7 +49,7 @@ void
 test0()
 {
   int i;
-  printf("test0 start\n");
+  // printf("test0 start\n");
   count = 0;
   sigalarm(2, periodic);
   for(i = 0; i < 1000*500000; i++){

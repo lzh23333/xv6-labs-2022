@@ -77,8 +77,21 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    // process alarm
+    if (PROC_ALARM_ENABLED(p)) {
+      p->elapsed_ticks++;
+      if (p->periodic_busy == 0 && p->elapsed_ticks >= p->ticks) {
+        p->elapsed_ticks = 0;
+        p->periodic_busy = 1;
+        // call periodic fn
+        memmove(&p->sigframe, p->trapframe, sizeof(struct trapframe));
+        p->trapframe->epc = p->periodic;
+      }
+    }
     yield();
+  }
+    
 
   usertrapret();
 }

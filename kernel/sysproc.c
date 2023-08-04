@@ -117,3 +117,27 @@ sys_uptime(void)
   return xticks;
 }
 
+uint64 sys_sigreturn(void)
+{
+  struct proc *p = myproc();
+  p->periodic_busy = 0;
+  // resume sigframe
+  memmove(p->trapframe, &p->sigframe, sizeof(struct trapframe));
+  return p->sigframe.a0;
+}
+
+uint64 sys_sigalarm(void)
+{
+  int ticks;
+  uint64 handler;
+  argint(0, &ticks);
+  argaddr(1, &handler);
+
+  struct proc *p = myproc();
+  p->ticks = ticks;
+  p->elapsed_ticks = 0;
+  p->periodic = handler;
+
+  return 0;
+}
+

@@ -104,4 +104,14 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // sigalarm syscall
+  int ticks;
+  int elapsed_ticks;
+  uint64 periodic;  // handler addr in user space
+  int periodic_busy;
+  // handler trapframe, resume when call sigreturn
+  struct trapframe sigframe; 
 };
+
+#define PROC_ALARM_ENABLED(p) ((p)->ticks != 0)
