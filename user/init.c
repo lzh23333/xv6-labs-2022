@@ -35,7 +35,7 @@ main(void)
       printf("init: exec sh failed\n");
       exit(1);
     }
-
+    printf("fork done.\n");
     for(;;){
       // this call to wait() returns if the shell exits,
       // or if a parentless process exits.

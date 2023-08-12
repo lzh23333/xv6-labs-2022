@@ -6,6 +6,7 @@
 #include "defs.h"
 #include "fs.h"
 
+
 /*
  * the kernel's page table.
  */
@@ -308,23 +309,27 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
-
+  //printf("uvmcopy called.\n");
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    // writable page, set PTE_W 0 and COW to 1
+    pa = PTE2PA(*pte);
+    if (flags & PTE_W) {
+      flags = (flags & (~PTE_W)) | PTE_COW;
+    }
+    // insert pte
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
       goto err;
     }
+    // update pte in old
+    *pte = PA2PTE(pa) | flags;
+    incr_count(pa);
   }
+  //printf("uvmcopy done.\n");
   return 0;
 
  err:
@@ -355,9 +360,20 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    pa0 = walkaddr(pagetable, va0);
-    if(pa0 == 0)
+    // pa0 = walkaddr(pagetable, va0);
+    // if(pa0 == 0)
+    //   return -1;
+    if (va0 > MAXVA)
       return -1;
+    pte_t *pte = walk(pagetable, va0, 0);
+    if((pte == 0) || ((*pte & PTE_V) == 0) || ((*pte & PTE_U) == 0))
+      return -1;
+    
+    if ((*pte & PTE_COW) && cow_handler(pte, va0) < 0) {
+      panic("copyout error");
+    }
+      
+    pa0 = walkaddr(pagetable, va0);
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -436,4 +452,32 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+// Cow page reallocation
+// and update pte to PTE_W set
+// return 0 if success, -1 if error
+int cow_handler(pte_t *pte, uint64 va) {
+  uint64 oldpa = PTE2PA(*pte);
+  uint flags = PTE_FLAGS(*pte);
+  // Cow page but ref count = 1
+  // change pte, no need to alloc
+  if (get_count(oldpa) == 1) {
+    flags = flags & (~PTE_COW);
+    flags = flags | PTE_W;
+    *pte = PA2PTE(oldpa) | flags;
+  }
+  else {
+    char *mem;
+    // no free mem, kill
+    if ((mem = kalloc()) == 0) {
+      return -1;
+    }
+    memmove(mem, (char*)oldpa, PGSIZE);
+    flags = (flags & (~PTE_COW)) | PTE_W;
+    kfree((void *)oldpa);
+    // update pa in pte
+    *pte = PA2PTE((uint64)mem) | flags;
+  }
+  return 0;
 }
