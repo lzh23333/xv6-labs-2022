@@ -11,9 +11,32 @@
 #define MAX_THREAD  4
 
 
+
+// context for thread
+typedef struct {
+  uint64 ra;
+  uint64 sp;
+
+  // callee-saved
+  uint64 s0;
+  uint64 s1;
+  uint64 s2;
+  uint64 s3;
+  uint64 s4;
+  uint64 s5;
+  uint64 s6;
+  uint64 s7;
+  uint64 s8;
+  uint64 s9;
+  uint64 s10;
+  uint64 s11;
+} context;
+
 struct thread {
   char       stack[STACK_SIZE]; /* the thread's stack */
   int        state;             /* FREE, RUNNING, RUNNABLE */
+  context    cxt;           /* the thread's callee registers */
+
 };
 struct thread all_thread[MAX_THREAD];
 struct thread *current_thread;
@@ -31,29 +54,41 @@ thread_init(void)
   current_thread->state = RUNNING;
 }
 
+void print_thread(void) {
+for (int i = 0; i < MAX_THREAD; i++) {
+    printf("t=%d, state=%d\n", i, (all_thread+i)->state);
+  }
+}
+
 void 
 thread_schedule(void)
 {
   struct thread *t, *next_thread;
-
+  #ifdef DEBUG
+  printf("=================================\n");
+  printf("current thread = %d\n", current_thread - all_thread, current_thread->state);
+  
+  print_thread();
+  #endif
   /* Find another runnable thread. */
   next_thread = 0;
   t = current_thread + 1;
+  
   for(int i = 0; i < MAX_THREAD; i++){
     if(t >= all_thread + MAX_THREAD)
       t = all_thread;
+    // printf("t=%d, state=%d\n", t-all_thread, t->state);
     if(t->state == RUNNABLE) {
       next_thread = t;
       break;
     }
     t = t + 1;
   }
-
   if (next_thread == 0) {
     printf("thread_schedule: no runnable threads\n");
     exit(-1);
   }
-
+  
   if (current_thread != next_thread) {         /* switch threads?  */
     next_thread->state = RUNNING;
     t = current_thread;
@@ -62,6 +97,13 @@ thread_schedule(void)
      * Invoke thread_switch to switch from t to next_thread:
      * thread_switch(??, ??);
      */
+
+    thread_switch((uint64)(&(t->cxt)), (uint64)(&(next_thread->cxt)));
+    #ifdef DEBUG
+    printf("after switch\n");
+    print_thread();
+    printf("=================================\n");
+    #endif
   } else
     next_thread = 0;
 }
@@ -76,6 +118,8 @@ thread_create(void (*func)())
   }
   t->state = RUNNABLE;
   // YOUR CODE HERE
+  t->cxt.ra = (uint64)func;
+  t->cxt.sp = (uint64)(&t->stack[STACK_SIZE-1]);
 }
 
 void 
